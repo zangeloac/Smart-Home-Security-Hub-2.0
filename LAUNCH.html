@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html></html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Home Security Simulator</title>
+    <!-- 
+      Chosen Palette: Calm Harmony (Light Gray Background, Dark Navigation, with Indigo and Orange accents)
+      Application Structure Plan: A single-page application (SPA) using a top navigation bar and JavaScript for view-switching. This design implements the navigation seen in user-supplied images (Home, Assessment, Shop, About Us) within the single-file constraint. The user flow starts on a "Home" landing page and allows navigation to separate interactive "views" (Simulator, Risk Assessment) and content "views" (Shop, About Us). This architecture clearly separates the app's functions for a clean user experience.
+      Visualization & Content Choices:
+      1. Project Info -> Goal: Inform -> Viz: Text Blocks (HTML/Tailwind) -> Interaction: View Switching (JS) -> Justification: Standard presentation for background. -> View: 'About Us'.
+      2. Simulation -> Goal: Interact, Change -> Viz: HTML Buttons, Dynamic DIVs (Log), Chart.js Bar Chart (Canvas) -> Interaction: JS onclick triggers event logging and chart updates -> Justification: Core interactive feature of the report; Chart.js required. -> View: 'Simulator'.
+      3. 10-Question Test -> Goal: Interact, Organize -> Viz: HTML Form with Radio Buttons -> Interaction: JS onsubmit triggers calculateScore() -> Justification: Standard method for a questionnaire; JS required for 0-100% scaling. -> View: 'Risk Assessment'.
+      4. Product List -> Goal: Inform -> Viz: HTML/Tailwind Card Grid -> Interaction: View Switching (JS) -> Justification: Standard layout for a "Shop" or recommendation section. -> View: 'Shop'.
+      CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9; /* Light color background */
+        }
+        .nav-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .nav-button.active {
+            background-color: #4f46e5; /* Indigo */
+            color: white;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+        }
+        .nav-button:not(.active) {
+            background-color: #1f2937; /* Dark Gray */
+            color: #d1d5db;
+        }
+        .nav-button:not(.active):hover {
+            background-color: #374151;
+            color: white;
+        }
+        .view-content {
+            display: none; /* All views are hidden by default */
+        }
+        .view-content.active {
+            display: block; /* The active view is shown */
+        }
+        .risk-item {
+            border-left: 4px solid #f97316; /* Orange indicator */
+            transition: all 0.2s;
+        }
+        .risk-item:hover {
+            box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.1);
+        }
+        input[type="radio"] {
+            accent-color: #f97316; /* Orange accent */
+        }
+        .evaluation-box {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            color: white;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Header / Navigation Bar -->
+    <header class="flex justify-center mb-8">
+        <nav class="flex flex-wrap justify-center space-x-2 md:space-x-4 p-2 bg-gray-900 rounded-xl shadow-xl">
+            <button class="nav-button active" data-view="home" onclick="switchView('home')">Home</button>
+            <button class="nav-button" data-view="simulator" onclick="switchView('simulator')">Simulator</button>
+            <button class="nav-button" data-view="assessment" onclick="switchView('assessment')">Risk Assessment</button>
+            <button class="nav-button" data-view="shop" onclick="switchView('shop')">Shop</button>
+            <button class="nav-button" data-view="about" onclick="switchView('about')">About Us</button>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="w-full max-w-6xl mx-auto space-y-12">
+
+        <!-- VIEW 1: HOME (Landing Page) -->
+        <div id="view-home" class="view-content active">
+            <h1 class="text-5xl font-extrabold text-gray-800 mb-6 text-center md:text-left">SmartHome Security Hub</h1>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Hero Card (Taga Pagbantay ng Mundo) -->
+                <div class="h-96 rounded-xl overflow-hidden shadow-2xl bg-gray-800 text-white flex flex-col justify-end" style="background: url('https://placehold.co/800x600/1e40af/ffffff?text=Home+Security') no-repeat center center; background-size: cover;">
+                    <div class="p-6 bg-black bg-opacity-50 backdrop-blur-sm">
+                        <h2 class="text-3xl font-black">TAGA PAGBANTAY NG MUNDO</h2>
+                        <p class="text-sm text-gray-300">/ GUARDIANS of your home</p>
+                    </div>
+                </div>
+
+                <!-- Evaluation Test Teaser -->
+                <div class="evaluation-box p-8 h-96 flex flex-col justify-center rounded-xl shadow-2xl">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <span class="text-4xl text-orange-400">&#9888;</span>
+                        <h3 class="text-2xl font-bold text-white">TAKE A HOME EVALUATION TEST</h3>
+                    </div>
+                    <p class="text-gray-300 leading-relaxed">
+                        A home security assessment is a systematic review of a property's current safety measures and vulnerabilities to identify necessary security improvements.
+                    </p>
+                    <button onclick="switchView('assessment')" class="mt-6 self-start px-6 py-3 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition duration-300 shadow-md">
+                        Start Assessment 
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: SIMULATOR (Monitoring Dashboard) -->
+        <div id="view-simulator" class="view-content hidden">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Live Security Simulator</h1>
+                <p class="text-lg text-gray-600">This dashboard simulates the core functions of a smart home security system. Trigger events and watch the system respond in real-time.</p>
+            </header>
+
+            <!-- Global Alert Panel -->
+            <div id="alert-panel" class="p-4 mb-8 rounded-xl bg-green-100 border border-green-300 transition-all duration-300" role="alert">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-3">&#128737;</span>
+                    <span class="text-lg font-semibold text-green-800">System Status: All systems clear. Ready for simulation.</span>
+                </div>
+            </div>
+
+            <!-- Main Grid Layout for Simulation -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column: Event Input, Notifications, and Log -->
+                <div class="lg:col-span-1 space-y-8">
+                    <!-- Data Input / Upload Section -->
+                    <div class="monitor-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Simulate Security Event</h2>
+                        <div class="mb-4">
+                            <label for="event-type" class="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                            <select id="event-type" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150">
+                                <option value="MOTION">Motion Detected</option>
+                                <option value="DOOR_OPEN">Door Opened</option>
+                                <option value="WINDOW_BREAK">Window Broken (Critical)</option>
+                                <option value="TEMP_SPIKE">Temperature Spike</option>
+                            </select>
+                        </div>
+                        <div class="mb-6">
+                            <label for="event-location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                            <input type="text" id="event-location" value="Front Door" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150" placeholder="e.g., Back Yard, Kitchen">
+                        </div>
+                        <button onclick="simulateEvent()" class="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 transition duration-300 ease-in-out shadow-md hover:shadow-lg">
+                            Trigger Event & Analyze
+                        </button>
+                    </div>
+                    
+                    <!-- Notification Panel -->
+                    <div class="monitor-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Notifications</h2>
+                        <div id="notification-panel" class="h-36 overflow-y-auto text-sm space-y-1 bg-gray-50 p-3 rounded-lg border">
+                            <div class="text-gray-500">No new notifications.</div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Log -->
+                    <div class="monitor-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Activity Log</h2>
+                        <div id="activity-log" class="h-52 overflow-y-auto text-xs space-y-2 bg-gray-900 text-gray-100 p-3 rounded-lg font-mono">
+                            <div class="text-gray-400">System booted. Awaiting events...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Data Analysis, Chart, and Summary -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Data Visualization (Charts and Graphs) -->
+                    <div class="monitor-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Event Frequency Analysis</h2>
+                        <div class="chart-container">
+                            <canvas id="eventChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary and Analysis -->
+                    <div class="monitor-card bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Summary and Insight Analysis</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                            <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                <p class="text-sm text-indigo-700 font-medium">Total Events Logged</p>
+                                <p id="summary-total" class="text-3xl font-extrabold text-indigo-900">0</p>
+                            </div>
+                            <div class="p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+                                <p class="text-sm text-yellow-700 font-medium">Most Frequent Event</p>
+                                <p id="summary-frequent" class="text-lg font-bold text-yellow-900 truncate">N/A</p>
+                            </div>
+                            <div class="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                                <p class="text-sm text-blue-700 font-medium">Peak Activity Hour</p>
+                                <p id="summary-peak-time" class="text-lg font-bold text-blue-900">N/A</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: RISK ASSESSMENT (10-Question Test) -->
+        <div id="view-assessment" class="view-content hidden">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Home Security Risk Evaluation</h1>
+                <p class="text-lg text-gray-600">Answer 10 questions to calculate your safety score (0% Unsafe → 100% Safe) and identify key vulnerabilities.</p>
+            </header>
+
+            <form id="assessment-form" class="space-y-6 max-w-4xl mx-auto">
+                <!-- Question 1 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">1. Which common entry point risks apply?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q1" value="risk" class="mr-2" required> Weak/broken locks, unsecured windows, no peephole, or no outdoor lighting.</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q1" value="safe" class="mr-2"> All entry points are secure and well-lit (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q1" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 2 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">2. Which outdoor/perimeter issues apply?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q2" value="risk" class="mr-2" required> Dark hiding areas, overgrown plants, or damaged/low fence.</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q2" value="safe" class="mr-2"> Perimeter is clear and secure (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q2" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 3 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">3. Which security devices are you missing?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q3" value="risk" class="mr-2" required> CCTV, alarm/siren, motion-sensor lights, or door/window sensors.</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q3" value="safe" class="mr-2"> I have a complete set of active devices (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q3" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 4 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">4. What surveillance problems exist?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q4" value="risk" class="mr-2" required> Cameras not functioning, no remote monitoring, or no backup power.</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q4" value="safe" class="mr-2"> All systems are functional with backups (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q4" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 5 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">5. Which access control risks apply?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q5" value="risk" class="mr-2" required> Lost/unaccounted keys, no doorbell camera, or keys hidden insecurely.</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q5" value="safe" class="mr-2"> Access is tightly controlled (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q5" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 6 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">6. Which security habits are a concern?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q6" value="risk" class="mr-2" required> Forgetting to lock doors, leaving windows open, or displaying valuables.</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q6" value="safe" class="mr-2"> I consistently follow secure habits (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q6" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 7 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">7. Have you noticed any suspicious activity recently?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q7" value="risk" class="mr-2" required> Yes (lingering persons, strange noises, or tampering attempts).</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q7" value="safe" class="mr-2"> No suspicious activity observed (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q7" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 8 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">8. Have you experienced an intruder-related incident?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q8" value="risk" class="mr-2" required> Yes (attempted/successful break-in, or stolen items from yard).</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q8" value="safe" class="mr-2"> No intruder-related incidents (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q8" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 9 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">9. Which monitoring limitations affect you when away?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q9" value="risk" class="mr-2" required> No way to receive alerts, no access to live video, or no local contacts.</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q9" value="safe" class="mr-2"> I can fully monitor my home and have local contacts (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q9" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+                <!-- Question 10 -->
+                <div class="risk-item p-4 rounded-md bg-white shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">10. Which security measures do you NOT have?</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center text-red-700 font-medium"><input type="radio" name="q10" value="risk" class="mr-2" required> No emergency contact plan, no reinforced doors/windows, or no break-in procedure.</label>
+                        <label class="flex items-center text-green-700"><input type="radio" name="q10" value="safe" class="mr-2"> All necessary security measures and plans are in place (No Risk).</label>
+                        <label class="flex items-center text-gray-500"><input type="radio" name="q10" value="na" class="mr-2"> N/A or Not Prefer to Say</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full px-6 py-4 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition duration-300 shadow-xl text-lg">
+                    Calculate My Safety Score
+                </button>
+            </form>
+
+            <!-- Results Section -->
+            <div id="results-area" class="mt-8 p-6 bg-indigo-50 rounded-xl shadow-inner border-t-4 border-indigo-300 hidden">
+                <h3 class="text-2xl font-bold text-indigo-800 mb-4">Your Security Evaluation Results</h3>
+                <div class="flex flex-col md:flex-row items-center justify-between md:space-x-6">
+                    <div class="text-center">
+                        <p class="text-lg font-semibold text-gray-700">Overall Safety Score</p>
+                        <p id="safety-score" class="text-7xl font-extrabold text-blue-600">0%</p>
+                    </div>
+                    <div class="flex-1 mt-4 md:mt-0">
+                        <p id="safety-message" class="text-xl font-medium"></p>
+                        <p id="improvement-message" class="mt-2 text-md text-gray-600 italic"></p>
+                    </div>
+                </div>
+                <button onclick="switchView('shop')" class="mt-6 px-5 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition">
+                    View Recommended Products
+                </button>
+            </div>
+        </div>
+
+        <!-- VIEW 4: SHOP (Product Recommendations) -->
+        <div id="view-shop" class="view-content hidden">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Security Product Shop</h1>
+                <p class="text-lg text-gray-600">Upgrade your home with these recommended security products, based on common risks.</p>
+            </header>
+            <div id="product-recommendations" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- Smart Lock Product (Real Link Added) -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                    <img src="https://placehold.co/600x400/3b82f6/ffffff?text=Smart+Lock" alt="Smart Lock" class="w-full h-48 object-cover">
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold text-gray-800">Smart Deadbolt X1</h3>
+                        <p class="text-sm text-gray-600 mt-2">Recommended for: Entry Points</p>
+                        <a href="https://www.amazon.com/s?k=smart+deadbolt" target="_blank" class="block mt-4 w-full text-center bg-indigo-600 text-white py-2 rounded-md font-semibold hover:bg-indigo-700 transition">View Product</a>
+                    </div>
+                </div>
+                
+                <!-- 4K Outdoor Camera Product (Real Link Added) -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                    <img src="https://placehold.co/600x400/10b981/ffffff?text=CCTV+Camera" alt="CCTV Camera" class="w-full h-48 object-cover">
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold text-gray-800">4K Outdoor Security Camera</h3>
+                        <p class="text-sm text-gray-600 mt-2">Recommended for: Perimeter & Surveillance</p>
+                        <a href="https://www.amazon.com/s?k=4k+outdoor+security+camera" target="_blank" class="block mt-4 w-full text-center bg-indigo-600 text-white py-2 rounded-md font-semibold hover:bg-indigo-700 transition">View Product</a>
+                    </div>
+                </div>
+                
+                <!-- Door & Window Sensor Kit Product (Real Link Added) -->
+                <div class="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                    <img src="https://placehold.co/600x400/f59e0b/ffffff?text=Sensor+Kit" alt="Sensor Kit" class="w-full h-48 object-cover">
+                    <div class="p-5">
+                        <h3 class="text-xl font-bold text-gray-800">Door & Window Sensor Kit</h3>
+                        <p class="text-sm text-gray-600 mt-2">Recommended for: Missing Devices</p>
+                        <a href="https://www.amazon.com/s?k=door+window+sensor+kit" target="_blank" class="block mt-4 w-full text-center bg-indigo-600 text-white py-2 rounded-md font-semibold hover:bg-indigo-700 transition">View Product</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 5: ABOUT US (Project Information) -->
+        <div id="view-about" class="view-content hidden">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2">About This Project</h1>
+                <p class="text-lg text-gray-600">An educational tool demonstrating computer engineering and Python in home security.</p>
+            </header>
+            <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg border border-gray-100 space-y-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-indigo-700">Statement of the Problem</h2>
+                    <p class="text-gray-700 mt-2">Many households lack affordable and accessible security systems. Most available smart devices require expensive hardware, making them difficult for ordinary homeowners to use. This project provides a web-based simulation to help users understand how real-time monitoring and alert notifications work without needing an actual setup.</p>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-indigo-700">General Objective</h2>
+                    <p class="text-gray-700 mt-2">To design and develop a Home Security Monitoring Website that simulates real-time monitoring and alert notifications using user-inputted security data, serving as an interactive and educational experience.</p>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-indigo-700">Significance of the Study</h2>
+                    <p class="text-gray-700 mt-2">This project is significant because it helps promote awareness about how technology can improve home safety. It serves as an educational tool for students, developers, and homeowners who want to understand how smart security systems function without needing real sensors or costly equipment.</p>
+                </div>
+                
+                <!-- UPDATED SECTION: Website Developer Information with Custom Placeholders -->
+                <div class="border-t pt-6">
+                    <h2 class="text-2xl font-bold text-indigo-700 mb-4">Website Developers</h2>
+                    <p class="text-gray-700 mb-6">This project was developed as a collaborative effort by the following team members:</p>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div class="p-3 bg-gray-50 rounded-lg shadow-sm">
+                            <img src="https://placehold.co/100x100/4f46e5/ffffff?text=SA" alt="Sam Angelo profile picture" class="w-16 h-16 rounded-full mx-auto mb-2 object-cover border-2 border-indigo-300">
+                            <p class="font-semibold text-gray-800">Sam Angelo</p>
+                            <p class="text-xs text-gray-500">A. ACUÑA</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg shadow-sm">
+                            <img src="https://placehold.co/100x100/10b981/ffffff?text=FG" alt="Florefeye profile picture" class="w-16 h-16 rounded-full mx-auto mb-2 object-cover border-2 border-green-300">
+                            <p class="font-semibold text-gray-800">Florefeye</p>
+                            <p class="text-xs text-gray-500">F. GUANTIA</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg shadow-sm">
+                            <img src="https://placehold.co/100x100/f97316/ffffff?text=JR" alt="Jishy Ressa profile picture" class="w-16 h-16 rounded-full mx-auto mb-2 object-cover border-2 border-orange-300">
+                            <p class="font-semibold text-gray-800">Jishy Ressa</p>
+                            <p class="text-xs text-gray-500">MEI R. ILAGAN</p>
+                        </div>
+                        <div class="p-3 bg-gray-50 rounded-lg shadow-sm">
+                            <img src="https://placehold.co/100x100/3b82f6/ffffff?text=VK" alt="Von Kirby profile picture" class="w-16 h-16 rounded-full mx-auto mb-2 object-cover border-2 border-blue-300">
+                            <p class="font-semibold text-gray-800">Von Kirby</p>
+                            <p class="text-xs text-gray-500">S. MONTALBO</p>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center pt-8 mt-8 border-t text-gray-500 text-sm">
+        <p>&copy; 2025 Smart Home Security Hub</p>
+    </footer>
+
+    <script>
+        // --- GLOBAL APP STATE & UTILITIES ---
+        let eventLog = [];
+        let chartInstance = null;
+        const MAX_LOG_ENTRIES = 50;
+        const MAX_NOTIFICATIONS = 5;
+
+        /**
+         * Switches the active view.
+         * @param {string} viewId - The ID of the view to show (e.g., 'home', 'simulator').
+         */
+        function switchView(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.classList.remove('active');
+            });
+            // Show the target view
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            
+            // Update nav button active state
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.classList.remove('active');
+                if (button.dataset.view === viewId) {
+                    button.classList.add('active');
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+
+        // --- SIMULATOR LOGIC ---
+
+        /**
+         * Gets details for a specific event type.
+         */
+        function getEventDetails(type) {
+            switch (type) {
+                case 'MOTION':
+                    return { text: 'Motion Detected', color: 'text-yellow-400', isCritical: false };
+                case 'DOOR_OPEN':
+                    return { text: 'Door Opened', color: 'text-orange-400', isCritical: true };
+                case 'WINDOW_BREAK':
+                    return { text: 'Window Broken', color: 'text-red-400', isCritical: true };
+                case 'TEMP_SPIKE':
+                    return { text: 'Temperature Spike', color: 'text-red-500', isCritical: true };
+                default:
+                    return { text: 'Unknown Event', color: 'text-gray-400', isCritical: false };
+            }
+        }
+
+        /**
+         * Simulates a new security event.
+         */
+        function simulateEvent() {
+            const type = document.getElementById('event-type').value;
+            const location = document.getElementById('event-location').value.trim() || 'Unspecified';
+            const timestamp = new Date();
+            const { text, color, isCritical } = getEventDetails(type);
+
+            const newEvent = {
+                id: timestamp.getTime(),
+                type: type,
+                location: location,
+                timestamp: timestamp,
+                text: text,
+                color: color,
+                isCritical: isCritical
+            };
+
+            logEvent(newEvent);
+            generateAlert(newEvent);
+            updateNotificationPanel(newEvent);
+            updateSummaryAndAnalysis();
+            
+            // Initialize or update the chart
+            if (!chartInstance) {
+                initChart();
+            } else {
+                updateChart();
+            }
+        }
+
+        /**
+         * Adds the event to the log array and updates the UI.
+         */
+        function logEvent(event) {
+            eventLog.unshift(event); // Add to start
+            if (eventLog.length > MAX_LOG_ENTRIES) {
+                eventLog.pop(); // Remove oldest
+            }
+
+            const logContainer = document.getElementById('activity-log');
+            const timeString = event.timestamp.toLocaleTimeString();
+            
+            if (logContainer.innerText.includes('Awaiting events...')) {
+                logContainer.innerHTML = ''; // Clear initial message
+            }
+
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `
+                <span class="text-gray-400">[${timeString}]</span>
+                <span class="${event.color} font-semibold">[${event.text}]</span>
+                <span class="text-cyan-300">at ${event.location}</span>
+            `;
+            logContainer.prepend(logEntry);
+        }
+
+        /**
+         * Updates the main system status alert panel.
+         */
+        function generateAlert(event) {
+            const panel = document.getElementById('alert-panel');
+            const icon = panel.querySelector('span:first-child');
+            const text = panel.querySelector('span:last-child');
+
+            panel.classList.remove('bg-green-100', 'border-green-300', 'bg-red-100', 'border-red-300');
+            text.classList.remove('text-green-800', 'text-red-800');
+
+            if (event.isCritical) {
+                panel.classList.add('bg-red-100', 'border-red-300');
+                text.classList.add('text-red-800');
+                icon.innerHTML = '&#9888;'; // Warning sign
+                text.textContent = `CRITICAL ALERT: ${event.text} at ${event.location}!`;
+
+                // Set a timeout to revert the alert
+                setTimeout(clearAlert, 10000);
+            } else {
+                panel.classList.add('bg-green-100', 'border-green-300');
+                text.classList.add('text-green-800');
+                icon.innerHTML = '&#128737;'; // Shield
+                text.textContent = `Event Logged: ${event.text} at ${event.location}. System remains clear.`;
+            }
+        }
+
+        /**
+         * Clears the critical alert and reverts to 'all clear'.
+         */
+        function clearAlert() {
+            const panel = document.getElementById('alert-panel');
+            const icon = panel.querySelector('span:first-child');
+            const text = panel.querySelector('span:last-child');
+            
+            panel.classList.remove('bg-red-100', 'border-red-300');
+            text.classList.remove('text-red-800');
+            
+            panel.classList.add('bg-green-100', 'border-green-300');
+            text.classList.add('text-green-800');
+            icon.innerHTML = '&#128737;'; // Shield
+            text.textContent = 'System Status: All systems clear.';
+        }
+
+        /**
+         * Updates the small notification panel.
+         */
+        function updateNotificationPanel(event) {
+            const panel = document.getElementById('notification-panel');
+            if (panel.innerText.includes('No new notifications.')) {
+                panel.innerHTML = ''; // Clear initial message
+            }
+
+            const notifEntry = document.createElement('div');
+            notifEntry.className = `p-2 rounded ${event.isCritical ? 'bg-red-100 border border-red-200' : 'bg-gray-100'}`;
+            notifEntry.innerHTML = `
+                <span class="font-semibold ${event.isCritical ? 'text-red-700' : 'text-blue-700'}">${event.text}</span>
+                <span class="text-sm text-gray-600"> at ${event.location}</span>
+            `;
+            panel.prepend(notifEntry);
+
+            if (panel.children.length > MAX_NOTIFICATIONS) {
+                panel.removeChild(panel.lastChild);
+            }
+        }
+
+        /**
+         * Updates the summary statistics card.
+         */
+        function updateSummaryAndAnalysis() {
+            if (eventLog.length === 0) return;
+
+            document.getElementById('summary-total').textContent = eventLog.length;
+
+            const typeFrequency = eventLog.reduce((acc, event) => {
+                acc[event.type] = (acc[event.type] || 0) + 1;
+                return acc;
+            }, {});
+            let mostFrequentType = Object.keys(typeFrequency).reduce((a, b) => typeFrequency[a] > typeFrequency[b] ? a : b);
+            document.getElementById('summary-frequent').textContent = getEventDetails(mostFrequentType).text;
+
+            const hourFrequency = eventLog.reduce((acc, event) => {
+                const hour = event.timestamp.getHours();
+                acc[hour] = (acc[hour] || 0) + 1;
+                return acc;
+            }, {});
+            let peakHour = Object.keys(hourFrequency).reduce((a, b) => hourFrequency[a] > hourFrequency[b] ? a : b);
+            document.getElementById('summary-peak-time').textContent = `${peakHour.padStart(2, '0')}:00 - ${String(Number(peakHour) + 1).padStart(2, '0')}:00`;
+        }
+
+        /**
+         * Updates the Chart.js data.
+         */
+        function updateChart() {
+            const typeFrequency = eventLog.reduce((acc, event) => {
+                acc[event.type] = (acc[event.type] || 0) + 1;
+                return acc;
+            }, {});
+
+            chartInstance.data.labels = Object.keys(typeFrequency).map(type => getEventDetails(type).text);
+            chartInstance.data.datasets[0].data = Object.values(typeFrequency);
+            chartInstance.update();
+        }
+
+        /**
+         * Initializes the Chart.js instance.
+         */
+        function initChart() {
+            const ctx = document.getElementById('eventChart').getContext('2d');
+            const typeFrequency = eventLog.reduce((acc, event) => {
+                acc[event.type] = (acc[event.type] || 0) + 1;
+                return acc;
+            }, {});
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(typeFrequency).map(type => getEventDetails(type).text),
+                    datasets: [{
+                        label: 'Event Count',
+                        data: Object.values(typeFrequency),
+                        backgroundColor: [
+                            'rgba(255, 159, 64, 0.7)',
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                        ],
+                        borderColor: [
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- RISK ASSESSMENT LOGIC ---
+        const assessmentForm = document.getElementById('assessment-form');
+        const resultsArea = document.getElementById('results-area');
+        const safetyScoreEl = document.getElementById('safety-score');
+        const safetyMessageEl = document.getElementById('safety-message');
+        const improvementMessageEl = document.getElementById('improvement-message');
+
+        assessmentForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            let totalPointsScored = 0;
+            let questionsAnsweredForScore = 0; // Only count 'safe' or 'risk'
+            const TOTAL_QUESTIONS = 10;
+
+            for (let i = 1; i <= TOTAL_QUESTIONS; i++) {
+                const qName = `q${i}`;
+                const selectedRadio = document.querySelector(`input[name="${qName}"]:checked`);
+                
+                if (!selectedRadio) continue; 
+                const value = selectedRadio.value;
+
+                if (value === 'safe') {
+                    totalPointsScored += 10;
+                    questionsAnsweredForScore++;
+                } else if (value === 'risk') {
+                    questionsAnsweredForScore++;
+                }
+                // 'na' answers are ignored
+            }
+
+            const maxPossibleScore = questionsAnsweredForScore * 10;
+            let safetyPercentage = 0;
+
+            if (maxPossibleScore > 0) {
+                safetyPercentage = Math.round((totalPointsScored / maxPossibleScore) * 100);
+            }
+
+            displayResults(safetyPercentage);
+        });
+
+        function displayResults(score) {
+            resultsArea.classList.remove('hidden');
+            safetyScoreEl.textContent = `${score}%`;
+            
+            safetyScoreEl.classList.remove('text-red-600', 'text-yellow-600', 'text-green-600');
+            
+            let message = '';
+            let improvement = '';
+
+            if (score >= 80) {
+                safetyScoreEl.classList.add('text-green-600');
+                message = "Excellent Security Profile!";
+                improvement = "Your safety posture is strong. Focus on maintaining good habits and regular equipment checks.";
+            } else if (score >= 50) {
+                safetyScoreEl.classList.add('text-yellow-600');
+                message = "Moderate Safety. You have some vulnerabilities.";
+                improvement = "Prioritize fixing any 'Risk' answers, starting with entry points (Q1) and missing devices (Q3).";
+            } else {
+                safetyScoreEl.classList.add('text-red-600');
+                message = "Low Safety. Your home has critical security risks.";
+                improvement = "Immediate action is required. Focus on securing all entry points (Q1, Q5) and establishing emergency plans (Q10).";
+            }
+
+            safetyMessageEl.textContent = message;
+            improvementMessageEl.textContent = improvement;
+            
+            resultsArea.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // --- INITIALIZE ---
+        // Start on the 'home' view
+        document.addEventListener('DOMContentLoaded', () => {
+            switchView('home');
+            initChart(); // Initialize the chart on load
+        });
+    </script>
+</body>
+</html>
